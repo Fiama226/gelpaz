@@ -1,0 +1,5 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Erreur — GELPAZ IMMO</title>
+<style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0A1B33;color:#fff;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;text-align:center;padding:24px}h1{font-size:28px;margin:18px 0 10px}p{color:rgba(255,255,255,.75);max-width:520px;margin:0 auto 22px;line-height:1.6}a{display:inline-block;background:#1C80F0;color:#fff;padding:14px 26px;border-radius:12px;text-decoration:none;font-weight:700}svg{width:110px;color:#C9A24A}</style></head>
+<body><div><svg viewBox="474 220 998 175" aria-hidden="true"><path fill="currentColor" d="M484 265.5C520 250 590 233 650 231C760 229 900 285 984 320L1463 265.5L990 382C930 345 840 310 760 289C680 272 580 264 484 265.5Z"/></svg>
+<h1>Une erreur inattendue est survenue</h1><p>Nos équipes ont été informées. Merci de réessayer dans quelques instants ou de nous contacter au +226 25 37 10 55.</p><a href="/">Retour à l’accueil</a></div></body></html>

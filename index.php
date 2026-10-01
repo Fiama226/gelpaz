@@ -1,25 +1,117 @@
 <?php
-$page = $_GET['page'] ?? 'home';
-$images = [
- 'hero'=>'assets/images/modern-villa-ouagadougou-burkina-faso-ar-1.jpg',
- 'villa1'=>'assets/images/modern-villa-ouagadougou-burkina-faso-ar-1.jpg',
- 'villa2'=>'assets/images/modern-villa-ouagadougou-burkina-faso-ar-2.jpg',
- 'villa3'=>'assets/images/modern-villa-ouagadougou-burkina-faso-ar-3.jpg',
- 'about'=>'assets/images/modern-villa-ouagadougou-burkina-faso-ar-4.jpg'
+/**
+ * GELPAZ IMMO — Contrôleur frontal.
+ * Toutes les requêtes (hors fichiers statiques) passent par ce fichier.
+ */
+declare(strict_types=1);
+
+require __DIR__ . '/app/bootstrap.php';
+
+use App\Admin\AdminController as A;
+use App\Admin\CrudController as Crud;
+use App\Controllers\FormController as F;
+use App\Controllers\InstallController;
+use App\Controllers\SiteController as S;
+use App\Router;
+
+$path = current_path();
+$method = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
+
+/* ----------------------------------------------------- Installation */
+if (str_starts_with($path, '/install') || !is_installed()) {
+    if (!str_starts_with($path, '/install')) {
+        redirect('/install');
+    }
+    (new InstallController())->handle();
+    exit;
+}
+
+$router = new Router();
+
+/* ---------------------------------------------------- Site public */
+$router->get('/', [S::class, 'home']);
+$router->get('/a-propos', [S::class, 'about']);
+$router->get('/missions-visions-valeurs', [S::class, 'mission']);
+$router->get('/nos-offres-immobilieres', [S::class, 'offers']);
+$router->get('/logements', [S::class, 'properties']);
+$router->get('/logements/{slug}', [S::class, 'property']);
+$router->get('/nos-sites', [S::class, 'sites']);
+$router->get('/souscription-logement', [S::class, 'subscription']);
+$router->get('/nos-activites', [S::class, 'services']);
+$router->get('/nos-activites/{slug}', [S::class, 'service']);
+$router->get('/faq', [S::class, 'faq']);
+$router->get('/actualites', [S::class, 'blog']);
+$router->get('/actualites/{slug}', [S::class, 'post']);
+$router->get('/contact', [S::class, 'contact']);
+$router->get('/mentions-legales', [S::class, 'legal']);
+$router->get('/sitemap.xml', [S::class, 'sitemap']);
+$router->get('/robots.txt', [S::class, 'robots']);
+$router->get('/site.webmanifest', [S::class, 'manifest']);
+
+/* ------------------------------------------------------ Formulaires */
+$router->post('/formulaire/contact', [F::class, 'contact']);
+$router->post('/formulaire/souscription', [F::class, 'subscription']);
+$router->post('/formulaire/newsletter', [F::class, 'newsletter']);
+$router->post('/actualites/{slug}/commentaire', [F::class, 'comment']);
+
+/* ------------------------------------------------------ Back-office */
+$router->any('/admin/connexion', [A::class, 'login']);
+$router->post('/admin/deconnexion', [A::class, 'logout']);
+$router->get('/admin', [A::class, 'dashboard']);
+$router->any('/admin/messages', [A::class, 'messages']);
+$router->any('/admin/messages/{id:\d+}', [A::class, 'message']);
+$router->any('/admin/souscriptions', [A::class, 'subscriptions']);
+$router->any('/admin/souscriptions/{id:\d+}', [A::class, 'subscription']);
+$router->any('/admin/commentaires', [A::class, 'comments']);
+$router->any('/admin/newsletter', [A::class, 'newsletter']);
+$router->any('/admin/reglages', [A::class, 'settings']);
+$router->any('/admin/compte', [A::class, 'account']);
+$router->any('/admin/outils', [A::class, 'tools']);
+$router->post('/admin/outils/import', [A::class, 'importBatch']);
+$router->post('/admin/upload-editeur', [A::class, 'editorUpload']);
+$router->get('/admin/{module}', [Crud::class, 'index']);
+$router->any('/admin/{module}/nouveau', [Crud::class, 'create']);
+$router->any('/admin/{module}/{id:\d+}', [Crud::class, 'edit']);
+$router->post('/admin/{module}/{id:\d+}/supprimer', [Crud::class, 'delete']);
+$router->post('/admin/{module}/{id:\d+}/basculer', [Crud::class, 'toggle']);
+$router->post('/admin/{module}/ordre', [Crud::class, 'reorder']);
+
+if ($router->dispatch($method, $path)) {
+    exit;
+}
+
+/* ------------------------- Redirections depuis l'ancien site WordPress */
+$legacy = [
+    '#^/nous-connaitre$#' => '/a-propos',
+    '#^/mission-vision-valeur$#' => '/missions-visions-valeurs',
+    '#^/properties-list-2(/page/\d+)?$#' => '/logements',
+    '#^/nos-realisations$#' => '/logements',
+    '#^/blog-list-no-sidebar-2(/page/\d+)?$#' => '/actualites',
+    '#^/category/.+$#' => '/actualites',
+    '#^/contact-us$#' => '/contact',
+    '#^/estate_developer/.+$#' => '/contact',
+    '#^/property_category/f3-economiques-finis$#' => '/logements?categorie=f3-moyen-standing',
+    '#^/property_category/f4-moyen-standing$#' => '/logements?categorie=f4-moyen-standing',
+    '#^/property_category/f5-duplex$#' => '/logements?categorie=f5-duplex-haut-standing',
+    '#^/property_action_category/vente$#' => '/logements?type=vente',
+    '#^/property_action_category/location$#' => '/logements?type=location',
+    '#^/property_(city|area|category|action_category)/.+$#' => '/logements',
 ];
-$props=[['F4 Moyen standing','Modèle F4C · 145 m² · 3 chambres',$images['villa1'],'3 145 m²'],['F3 Moyen standing','Modèle F3A · 130 m² · 3 chambres',$images['villa2'],'2 130 m²'],['Villa familiale F4','Modèle F4B · 145 m² · 3 chambres',$images['villa3'],'3 145 m²']];
-$title=['home'=>'Accueil','about'=>'À propos','property'=>'Nos logements','details'=>'Détail du logement','services'=>'Nos activités','faq'=>'FAQ','blog'=>'Actualités','article'=>'Actualité','error'=>'Page introuvable','contact'=>'Contact'][$page] ?? 'Gelpaz Immo';
-function header($title){ ?><!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title><?=htmlspecialchars($title)?> · GELPAZ IMMO</title><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="assets/style.css"></head><body><div class="top"><span>Votre partenaire immobilier au Burkina Faso</span><span>☎ +226 25 37 10 55 &nbsp; · &nbsp; ✉ infos@gelpaz.com</span></div><header><a class="brand" href="?page=home"><span class="mark">G</span><span><b>GELPAZ</b><small>LA DIFFÉRENCE</small></span></a><nav><a href="?page=home">Accueil</a><a href="?page=about">À propos</a><a href="?page=property">Nos logements</a><a href="?page=services">Nos activités</a><a href="?page=blog">Actualités</a><a href="?page=contact">Contact</a></nav><a class="btn btn-dark" href="?page=contact">Parlons de votre projet <b>↗</b></a><button class="menu">☰</button></header><?php }
-function footer(){ ?><footer><div><a class="brand light" href="?page=home"><span class="mark">G</span><span><b>GELPAZ</b><small>LA DIFFÉRENCE</small></span></a><p>Des espaces de vie pensés pour vous,<br>au cœur du Burkina Faso.</p></div><div><h4>Navigation</h4><a href="?page=about">Qui sommes-nous ?</a><a href="?page=property">Nos logements</a><a href="?page=services">Nos activités</a></div><div><h4>Nous contacter</h4><p>Ouagadougou, Burkina Faso</p><p>+226 25 37 10 55<br>+226 67 30 81 85 (WhatsApp)</p></div><div><h4>Restons connectés</h4><p>Suivez nos projets et nos nouveautés.</p><div class="social">in &nbsp; f &nbsp; ◎</div></div><div class="copy">© <?=date('Y')?> GELPAZ IMMO — Tous droits réservés</div></footer></body></html><?php }
-function hero($title,$sub=''){ ?><section class="pagehero"><div class="container"><p class="eyebrow">GELPAZ IMMO</p><h1><?=$title?></h1><p><?=$sub?></p></div></section><?php }
-header($title);
-if($page==='home'){ ?><section class="hero"><div class="hero-copy"><p class="eyebrow">L'immobilier autrement</p><h1>Construisons<br><em>vos rêves.</em></h1><p>Des logements de qualité, un accompagnement humain et une vision durable pour donner vie à vos projets immobiliers.</p><div><a class="btn btn-yellow" href="?page=property">Découvrir nos logements <b>↗</b></a><a class="textlink" href="?page=about">En savoir plus →</a></div></div><div class="hero-note"><b>30+</b><span>années d'expérience<br>à vos côtés</span></div></section><section class="intro container"><div><p class="eyebrow">Notre différence</p><h2>Un patrimoine.<br><em>Une histoire.</em></h2></div><div class="intro-text"><p>Chez GELPAZ IMMO, nous croyons qu'un logement est bien plus qu'un toit : c'est le début d'une nouvelle histoire.</p><a class="arrow" href="?page=about">Découvrir GELPAZ <span>↗</span></a></div></section><section class="dark-section"><div class="container"><div class="section-head"><div><p class="eyebrow yellow">Nos logements</p><h2>Des espaces pour<br><em>vivre pleinement.</em></h2></div><a class="btn btn-outline" href="?page=property">Voir tous les logements ↗</a></div><div class="cards"><?php foreach($props as $p){card($p);} ?></div></div></section><section class="stats"><div><b>30+</b><span>ans d'expérience</span></div><div><b>500+</b><span>familles accompagnées</span></div><div><b>11</b><span>modèles disponibles</span></div><div><b>100%</b><span>d'engagement</span></div></section><?php }
-elseif($page==='property'){ hero('Nos logements','Trouvez l’espace qui correspond à votre prochaine histoire.'); ?><main class="container content"><div class="filter"><b>Nos offres immobilières</b><select><option>Trier par : plus récents</option><option>Surface croissante</option></select></div><div class="cards grid3"><?php foreach($props as $p){card($p);} ?></div></main><?php }
-elseif($page==='details'){ hero('F4 Moyen standing','Une maison pensée pour votre quotidien.'); ?><main class="container detail"><img class="detail-img" src="<?=$images['villa1']?>"><div class="detail-body"><div><p class="eyebrow">Disponible · Vente</p><h2>Modèle F4C</h2><p class="lead">Un cadre de vie confortable et fonctionnel à Ouagadougou.</p></div><div class="facts"><span>145 m²<b>Surface bâtie</b></span><span>03<b>Chambres</b></span><span>03<b>Salles d’eau</b></span></div><p>Profitez d'une architecture contemporaine, de volumes généreux et de finitions pensées avec soin. Contactez notre équipe pour organiser une visite.</p><a class="btn btn-dark" href="?page=contact">Demander une visite ↗</a></div></main><?php }
-elseif($page==='about'){ hero('À propos de GELPAZ','Plus de 30 ans à bâtir la confiance.'); ?><main class="container about"><div class="about-image"></div><div><p class="eyebrow">Notre histoire</p><h2>L'immobilier avec<br><em>une âme.</em></h2><p>GELPAZ IMMO est un acteur immobilier engagé au Burkina Faso. Notre mission est de rendre l'expérience immobilière plus simple, plus transparente et plus humaine.</p><p>De la sélection du terrain à la remise des clés, nos équipes vous accompagnent avec écoute, intégrité et professionnalisme.</p><a class="btn btn-yellow" href="?page=contact">Échangeons sur votre projet ↗</a></div></main><section class="values"><div class="container"><p class="eyebrow yellow">Nos valeurs</p><div class="value-grid"><div><b>01</b><h3>La qualité</h3><p>Des solutions durables conçues avec exigence.</p></div><div><b>02</b><h3>La confiance</h3><p>Une relation claire et sincère à chaque étape.</p></div><div><b>03</b><h3>L'innovation</h3><p>Des façons nouvelles de mieux vous servir.</p></div></div></div></section><?php }
-elseif($page==='services'){ hero('Nos activités','Des services conçus autour de vos ambitions.'); ?><main class="container services"><div class="service"><b>01</b><h2>Acquisition & vente</h2><p>Nous vous guidons dans chaque étape pour trouver, acheter ou vendre dans les meilleures conditions.</p></div><div class="service"><b>02</b><h2>Gestion immobilière</h2><p>Valorisez votre patrimoine grâce à une gestion rigoureuse et une présence de proximité.</p></div><div class="service"><b>03</b><h2>Conseil & investissement</h2><p>Une lecture claire du marché pour sécuriser vos décisions et faire grandir vos projets.</p></div></main><?php }
-elseif($page==='contact'){ hero('Parlons de votre projet','Notre équipe vous répond avec plaisir.'); ?><main class="container contact"><div><p class="eyebrow">Nous trouver</p><h2>Une question ?<br><em>Écrivez-nous.</em></h2><p>Ouagadougou, Burkina Faso</p><p>+226 25 37 10 55<br>+226 67 30 81 85 (WhatsApp)<br>infos@gelpaz.com</p></div><form><input placeholder="Votre nom"><input placeholder="Votre adresse e-mail"><select><option>Je souhaite...</option><option>Acheter un logement</option><option>Investir</option><option>Obtenir un conseil</option></select><textarea placeholder="Votre message"></textarea><button class="btn btn-yellow">Envoyer le message ↗</button></form></main><?php }
-elseif($page==='error'){ ?><main class="notfound"><div><span class="error-code">404</span><p class="eyebrow">Oups, cette page s'est égarée</p><h1>Retrouvons<br><em>votre chemin.</em></h1><p>La page recherchée n'existe plus ou a été déplacée.</p><a class="btn btn-yellow" href="?page=home">Retour à l'accueil ↗</a></div></main><?php }
-elseif($page==='faq'){ hero('Questions fréquentes'); ?><main class="container faq"><details open><summary>Comment visiter un logement ?</summary><p>Contactez notre équipe par téléphone ou via le formulaire de contact pour convenir d'un rendez-vous.</p></details><details><summary>Quels types de logements proposez-vous ?</summary><p>Nous proposons principalement des villas F3 et F4 de moyen standing à Ouagadougou.</p></details><details><summary>Comment souscrire à un logement ?</summary><p>Notre équipe vous accompagne depuis le choix du modèle jusqu'à la finalisation de votre dossier.</p></details></main><?php }
-else { hero($title); ?><main class="container content"><h2>Nos actualités</h2><div class="cards grid3"><?php foreach($props as $i=>$p){ ?><article class="post"><img src="<?=$p[2]?>"><p class="eyebrow">Conseils immobiliers</p><h3><?=['Bien choisir son futur logement','Investir dans l’immobilier au Burkina Faso','GELPAZ, la différence au quotidien'][$i]?></h3><a href="?page=article">Lire l’article →</a></article><?php } ?></div></main><?php }
-footer(); function card($p){ ?><article class="card"><div class="card-img" style="background-image:url('<?=$p[2]?>')"><span>Disponible</span><button>♡</button></div><div class="card-body"><p class="eyebrow">Ouagadougou · Vente</p><h3><?=$p[0]?></h3><p><?=$p[1]?></p><div class="card-foot"><b><?=$p[3]?></b><a href="?page=details">Voir le détail ↗</a></div></div></article><?php } ?>
+foreach ($legacy as $regex => $target) {
+    if (preg_match($regex, $path)) {
+        redirect($target, 301);
+    }
+}
+if (preg_match('#^/estate_property/([a-z0-9\-]+)$#', $path, $m)) {
+    $map = ['f5-haut-standing' => 'f5-duplex-haut-standing', 'modele-f4a-2' => 'modele-f4a'];
+    redirect('/logements/' . ($map[$m[1]] ?? $m[1]), 301);
+}
+// Anciens articles : gelpaz.com/{slug-article}
+if (preg_match('#^/([a-z0-9\-]+)$#', $path, $m)) {
+    $post = App\Database::one('SELECT slug FROM posts WHERE (slug = ? OR legacy_slug = ?) AND is_published = 1', [$m[1], $m[1]]);
+    if ($post) {
+        redirect('/actualites/' . $post['slug'], 301);
+    }
+}
+
+abort(404);

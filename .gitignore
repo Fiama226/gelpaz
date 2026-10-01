@@ -1,0 +1,24 @@
+# Configuration locale (mots de passe)
+/config/config.php
+
+# Données générées
+/storage/*.sqlite
+/storage/*.sqlite-*
+/storage/app.key
+/storage/logs/*
+!/storage/logs/.gitkeep
+/storage/cache/*
+!/storage/cache/.gitkeep
+/storage/sessions/*
+!/storage/sessions/.gitkeep
+
+# Fichiers téléversés via le back-office
+/uploads/*
+!/uploads/.htaccess
+!/uploads/.gitkeep
+
+# Divers
+/image-search/
+node_modules/
+.DS_Store
+Thumbs.db

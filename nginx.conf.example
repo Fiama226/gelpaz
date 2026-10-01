@@ -1,0 +1,58 @@
+# ==========================================================================
+#  GELPAZ IMMO — Exemple de configuration Nginx (PHP-FPM 8.1+)
+#  Adaptez server_name, root et le socket PHP-FPM à votre serveur.
+# ==========================================================================
+server {
+    listen 80;
+    server_name gelpaz.com www.gelpaz.com;
+    return 301 https://gelpaz.com$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name gelpaz.com;
+    root /var/www/gelpaz;
+    index index.php;
+    charset utf-8;
+    client_max_body_size 64M;
+
+    # ssl_certificate     /etc/letsencrypt/live/gelpaz.com/fullchain.pem;
+    # ssl_certificate_key /etc/letsencrypt/live/gelpaz.com/privkey.pem;
+
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    # Dossiers internes et fichiers sensibles interdits
+    location ~ ^/(app|config|database|storage|templates|tools)(/|$) { deny all; return 404; }
+    location ~ /\.(?!well-known) { deny all; }
+    location ~* \.(sqlite|sqlite3|db|log|md|sql|lock|example|dist|sh|ini)$ { deny all; }
+    location = /server.php { deny all; }
+
+    # Aucun script exécutable dans les téléversements
+    location ~* ^/uploads/.*\.(php\d?|phtml|phar|pl|py|cgi|sh)$ { deny all; }
+
+    # Fichiers statiques : cache long
+    location ~* \.(?:css|js|woff2|jpg|jpeg|png|webp|gif|svg|ico)$ {
+        expires 1y;
+        add_header Cache-Control "public, max-age=31536000";
+        try_files $uri =404;
+    }
+
+    # Contrôleur frontal
+    location / {
+        try_files $uri /index.php?$query_string;
+    }
+
+    location = /index.php {
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root/index.php;
+        fastcgi_param SCRIPT_NAME /index.php;
+        fastcgi_pass unix:/run/php/php8.2-fpm.sock;
+    }
+
+    # Tout autre fichier .php est refusé
+    location ~ \.php$ { return 404; }
+
+    gzip on;
+    gzip_types text/plain text/css application/javascript application/json image/svg+xml application/xml application/manifest+json;
+}
